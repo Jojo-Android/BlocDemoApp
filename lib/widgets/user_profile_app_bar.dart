@@ -1,0 +1,134 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../cubit/user/user_cubit.dart';
+import '../cubit/user/user_state.dart';
+import '../l10n/app_localizations.dart';
+
+class UserProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final VoidCallback? onAvatarTap;
+
+  const UserProfileAppBar({super.key, this.onAvatarTap});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(120);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final local = AppLocalizations.of(context)!;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Colors.white, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: BlocBuilder<UserCubit, UserState>(
+              builder: (context, state) {
+                final user = switch (state) {
+                  Loaded(:final user) => user,
+                  _ => null,
+                };
+
+                final imagePath = user?.imagePath;
+                final hasImage =
+                    imagePath != null &&
+                    imagePath.isNotEmpty &&
+                    File(imagePath).existsSync();
+
+                return Row(
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: onAvatarTap,
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.colorScheme.secondaryContainer,
+                          ),
+                          child: ClipOval(
+                            child: hasImage
+                                ? Image.file(
+                                    File(imagePath),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      Icons.account_circle,
+                                      size: 72,
+                                      color: Color(Colors.white.value),
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.account_circle,
+                                    size: 72,
+                                    color: Color(Colors.white.value),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            local.welcome,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user?.name ?? local.user,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
